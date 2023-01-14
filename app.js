@@ -5,6 +5,7 @@ const bodyParser = require("body-parser");
 const date = require(__dirname + "/date.js");
 const mongoose = require("mongoose");
 const _ = require("lodash");
+const { countBy } = require("lodash");
 const app = express();
 app.set("view engine", "ejs");
 const PORT = process.env.PORT || 3000;
@@ -57,7 +58,7 @@ const customListSchema = new mongoose.Schema({
 const customList = new mongoose.model("List", customListSchema);
 
 app.get("/", function (req, res) {
-  const day = date.getDate();
+  const day = "Today";
 
   //!to avoid repeatative entries in database
   Item.find({}, function (err, foundItems) {
@@ -66,61 +67,44 @@ app.get("/", function (req, res) {
         if (err) console.log(err);
         else console.log("sucessfully added to the database");
       });
+    } else {
+      //* fetch from database
+      Item.find({}, function (err, myitems) {
+        res.render("list", { listTitle: day, newListItems: myitems });
+      });
     }
-  });
-  //* fetch from database
-  Item.find({}, function (err, myitems) {
-    res.render("list", { listTitle: day, newListItems: myitems });
   });
 });
 
 //* adding items to our database collection
 app.post("/", function (req, res) {
   const item = req.body.newItem;
-  const ListName = _.capitalize(req.body.list);
+  const ListName = req.body.list;
   const newItem = new Item({
     name: item,
   });
 
-  if (ListName == date.getDate()) {
+  if (ListName === "Today") {
     newItem.save();
     res.redirect("/");
   } else {
     customList.findOne({ name: ListName }, function (err, foundItems) {
-      foundItems.items.push(newItem);
-      foundItems.save();
-      res.redirect("/" + ListName);
-    });
-  }
-});
-//! delete operation
-app.post("/delete", (req, res) => {
-  let id = req.body.toDelete;
-  let ListName = req.body.ListName;
-  console.log(req.body);
-  // console.log(id);
-  if (ListName === date.getDate()) {
-    console.log("default list");
-    Item.findOneAndDelete({ _id: id }, function (err) {
-      if (err) console.log(err);
-      else console.log("item deleted successfully");
-    });
-    res.redirect("/");
-  } else {
-    customList.findOneAndUpdate(
-      { name: ListName },
-      { $pull: { items: { _id: id } } },
-      function (err) {
-        if (err) console.log(err);
-        else console.log(`${ListName} item deleted succesfully `);
+      if (err) console.log("can't add item to custum list");
+      else {
+        foundItems.items.push(newItem);
+        // console.log(foundItems.items);
+        foundItems.save();
+
+        // console.log(foundItems);
+        res.redirect("/" + ListName);
       }
-    );
-    res.redirect("/" + ListName);
+    });
+    // console.log("inside else statement");
   }
 });
 
+//* insert data to customList collection
 app.get("/:custumUrl", function (req, res) {
-  let ListName = _.capitalize(req.param.custumUrl);
   customList.findOne({ name: req.params.custumUrl }, function (err, foundList) {
     if (!foundList) {
       console.log("not found");
@@ -145,12 +129,31 @@ app.get("/:custumUrl", function (req, res) {
   });
 });
 
-//* insert data to customList collection
-app.post("/:customUrl", (req, res) => {});
-app.get("/about", function (req, res) {
-  res.render("about");
+//! delete operation
+app.post("/delete", (req, res) => {
+  let id = req.body.toDelete;
+  let ListName = req.body.ListName;
+  // console.log(req.body);
+  // console.log(id);
+  if (ListName === "Today") {
+    console.log("default list");
+    Item.findOneAndDelete({ _id: id }, function (err) {
+      if (err) console.log(err);
+      else console.log("item deleted successfully");
+    });
+    res.redirect("/");
+  } else {
+    customList.findOneAndUpdate(
+      { name: ListName },
+      { $pull: { items: { _id: id } } },
+      function (err) {
+        if (err) console.log(err);
+        else console.log(`${ListName} item deleted succesfully `);
+      }
+    );
+    res.redirect("/" + ListName);
+  }
 });
-
 app.listen(PORT, function () {
   console.log(`Server started on port ${PORT}`);
 });
