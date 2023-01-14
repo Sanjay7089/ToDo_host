@@ -7,13 +7,14 @@ const mongoose = require("mongoose");
 const _ = require("lodash");
 const app = express();
 app.set("view engine", "ejs");
-
+const PORT = process.env.PORT || 3000;
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
 //* connect mongoose to database
 mongoose.set("strictQuery", true);
-const mongoDB = "mongodb://127.0.0.1/todoDB";
+const mongoDB =
+  "mongodb+srv://sanjayjatsanjay22:JlyID69wOG1EBZB0@cluster0.yhhcmza.mongodb.net/TodoDB";
 mongoose.connect(mongoDB, { useNewUrlParser: true, useUnifiedTopology: true });
 
 const db = mongoose.connection;
@@ -150,6 +151,6 @@ app.get("/about", function (req, res) {
   res.render("about");
 });
 
-app.listen(3000, function () {
-  console.log("Server started on port 3000");
+app.listen(PORT, function () {
+  console.log(`Server started on port ${PORT}`);
 });
